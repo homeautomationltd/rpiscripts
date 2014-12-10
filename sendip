@@ -1,0 +1,36 @@
+#!/bin/bash
+
+source /etc/sendip.conf
+
+if [[ -z $1 ]]
+then
+    echo "
+Usage: $0 <email address> 
+"
+    exit 1
+fi
+
+EMAIL_ADDRESS=$1
+
+expand_message ()
+{
+    echo "$1" | while read LINE
+    do
+        echo "$(eval echo $LINE)"
+    done
+}
+
+if [[ -f "/tmp/.ipaddress" ]]
+then
+    OLDIP=$(cat /tmp/.ipaddress)
+fi
+
+NEWIP=$(wget -qO - http://what-is-my-ip.net/?text)
+
+if [[ "$OLDIP" != "$NEWIP" ]]
+then
+    MESSAGE=$(expand_message "$EMAIL_MESSAGE")
+
+    sendEmail -f $RASPBERRY_EMAIL -t $EMAIL_ADDRESS -s $SMTP_HOST -u $EMAIL_SUBJECT -xu $RASPBERRY_EMAIL -xp $RASPBERRY_PASSWORD -m "$MESSAGE" -o tls=yes
+    echo $NEWIP > /tmp/.ipaddress
+fi
